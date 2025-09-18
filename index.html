@@ -606,14 +606,14 @@
 
         const rows = data.table.rows;
 
-        if (rows.length <= 1) {
+        if (rows.length <= 0) {
           return [];
         }
 
         const participants = [];
 
         // Salta la prima riga (header)
-        for (let i = 1; i < rows.length; i++) {
+        for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
 
           // Verifica che la riga abbia celle
@@ -824,21 +824,12 @@
                     <div class="text-4xl mb-2">${medals[position - 1]}</div>
                     <h3 class="text-xl font-bold text-gray-800">${position}° Posto</h3>
                 </div>
-                <div class="relative group">
+                <div class="relative">
                     <img src="${participant.foto}" alt="${participant.nome}"
-                         class="w-20 h-20 rounded-full mx-auto mb-4 photo-frame object-cover cursor-pointer"
+                         class="w-20 h-20 rounded-full mx-auto mb-4 photo-frame object-cover"
                          onerror="handleImageError(this, '${participant.foto}')"
-                         onclick="showPhotoMenu(event, '${
-                           participant.foto
-                         }', '${participant.nome}')"
                          data-original-src="${participant.foto}"
                          data-participant-name="${participant.nome}">
-                    <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div class="flex space-x-2">
-                            <i class="fas fa-download text-white text-xs"></i>
-                            <i class="fas fa-eye text-white text-xs"></i>
-                        </div>
-                    </div>
                 </div>
                 <h4 class="text-lg font-bold text-gray-800 mb-2">${
                   participant.nome

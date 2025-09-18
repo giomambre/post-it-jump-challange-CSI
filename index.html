@@ -505,11 +505,31 @@
        */
       function initApp() {
         console.log("🚀 Inizializzazione Post-it Jump Challenge");
+        console.log("🌐 Ambiente di hosting:", window.location.hostname);
+        console.log("📍 URL completo:", window.location.href);
+        console.log("🔗 URL Google Sheet:", SHEET_URL);
 
-        // Test di emergenza - forza fine caricamento dopo 5 secondi se bloccato
+        // Controllo specifico per GitHub Pages
+        if (window.location.hostname.includes("github.io")) {
+          console.log("📘 Rilevato GitHub Pages - Controlli aggiuntivi attivi");
+          console.log("⚠️ Assicurati che il Google Sheet sia:");
+          console.log("   1. Pubblicato sul web");
+          console.log("   2. Accessibile a 'chiunque abbia il link'");
+          console.log("   3. Non richieda autenticazione");
+        }
+
+        // Test di emergenza - forza fine caricamento dopo 10 secondi per GitHub Pages
+        const timeoutDuration = window.location.hostname.includes("github.io")
+          ? 10000
+          : 5000;
+
         setTimeout(() => {
           if (isLoading) {
-            console.log("⚠️ Timeout caricamento - forzo la fine");
+            console.log(
+              `⚠️ Timeout caricamento dopo ${
+                timeoutDuration / 1000
+              } secondi - forzo la fine`
+            );
             isLoading = false;
             showLoading(false);
 
@@ -517,18 +537,32 @@
             console.log("🧪 Test con dati fittizi...");
             participantsData = [
               {
-                nome: "Test Partecipante",
+                nome: "Test Partecipante 1",
                 misura: 150,
-                foto: "https://via.placeholder.com/150x150?text=Test",
+                foto: "https://via.placeholder.com/150x150?text=Test1",
                 corso: "Test Course",
-                instagram: "test_instagram",
+                instagram: "test_instagram1",
+              },
+              {
+                nome: "Test Partecipante 2",
+                misura: 140,
+                foto: "https://via.placeholder.com/150x150?text=Test2",
+                corso: "Test Course 2",
+                instagram: "test_instagram2",
               },
             ];
             updateUI();
             updateLastUpdateTime();
             console.log("✅ Test completato con dati fittizi");
+
+            // Mostra messaggio specifico per GitHub Pages
+            if (window.location.hostname.includes("github.io")) {
+              showError(
+                "Timeout caricamento dati da Google Sheets. Su GitHub Pages verifica le impostazioni di condivisione del foglio."
+              );
+            }
           }
-        }, 5000);
+        }, timeoutDuration);
 
         loadLeaderboard();
         startAutoRefresh();
@@ -546,21 +580,45 @@
 
         isLoading = true;
         console.log("📊 Caricamento dati dal Google Sheet...");
+        console.log("🌐 Ambiente:", window.location.hostname);
 
         try {
           showLoading(true);
           hideError();
 
-          const response = await fetch(SHEET_URL);
+          // Aggiungi headers per GitHub Pages
+          const fetchOptions = {
+            method: "GET",
+            headers: {
+              Accept: "text/plain, application/json, text/javascript, */*",
+              "User-Agent": "Mozilla/5.0 (compatible; PostItChallenge/1.0)",
+            },
+            mode: "cors",
+            cache: "no-cache",
+          };
+
+          console.log("🔗 Tentativo connessione a:", SHEET_URL);
+          const response = await fetch(SHEET_URL, fetchOptions);
+
+          console.log(
+            "📡 Status risposta:",
+            response.status,
+            response.statusText
+          );
+          console.log("📋 Headers risposta:", [...response.headers.entries()]);
 
           if (!response.ok) {
             if (response.status === 403) {
               throw new Error(
-                "Accesso negato - Il Google Sheet deve essere pubblicato pubblicamente"
+                "Accesso negato - Il Google Sheet deve essere pubblicato pubblicamente. Verifica che sia accessibile a chiunque abbia il link."
               );
             } else if (response.status === 404) {
               throw new Error(
                 "Google Sheet non trovato - Verifica l'ID del documento"
+              );
+            } else if (response.status === 0) {
+              throw new Error(
+                "Errore CORS - GitHub Pages potrebbe bloccare la richiesta. Prova a rendere il Google Sheet pubblico."
               );
             } else {
               throw new Error(
@@ -570,17 +628,32 @@
           }
 
           const text = await response.text();
+          console.log("📄 Lunghezza risposta:", text.length, "caratteri");
+          console.log("🔍 Primi 100 caratteri:", text.substring(0, 100));
 
           // Verifica che sia il formato giusto
           if (!text.startsWith("/*O_o*/")) {
+            console.error(
+              "❌ Formato risposta non valido. Risposta completa:",
+              text
+            );
             throw new Error(
-              "Formato risposta non valido - Il Google Sheet potrebbe non essere pubblicato correttamente"
+              "Formato risposta non valido - Il Google Sheet potrebbe non essere pubblicato correttamente. Assicurati che sia 'Accessibile a chiunque abbia il link'."
             );
           }
 
           // Rimuovi il prefisso Google Visualization API
           const jsonText = text.substring(47).slice(0, -2);
+          console.log(
+            "🔧 JSON estratto (primi 200 caratteri):",
+            jsonText.substring(0, 200)
+          );
+
           const data = JSON.parse(jsonText);
+          console.log(
+            "✅ Parsing JSON completato. Struttura:",
+            Object.keys(data)
+          );
 
           // Processa i dati
           participantsData = processSheetData(data);
@@ -592,7 +665,17 @@
           console.log(`✅ Caricati ${participantsData.length} partecipanti`);
         } catch (error) {
           console.error("❌ Errore nel caricamento:", error);
-          showError(`Errore nel caricamento dei dati: ${error.message}`);
+          console.error("📊 Stack trace:", error.stack);
+
+          // Messaggio di errore più specifico per GitHub Pages
+          let errorMessage = `Errore nel caricamento dei dati: ${error.message}`;
+
+          if (window.location.hostname.includes("github.io")) {
+            errorMessage +=
+              "\n\nSu GitHub Pages assicurati che:\n1. Il Google Sheet sia pubblicato come 'Accessibile a chiunque abbia il link'\n2. Le impostazioni di condivisione permettano l'accesso senza autenticazione";
+          }
+
+          showError(errorMessage);
         } finally {
           showLoading(false);
           isLoading = false; // Libera il lock
